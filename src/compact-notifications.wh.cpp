@@ -2,7 +2,7 @@
 // @id              compact-notifications-background
 // @name            Compact Notifications (background fix)
 // @description     Replaces Windows notification banners with compact chat-style cards: avatar, sender and a few lines of text
-// @version         1.2.3
+// @version         1.2.4
 // @author          Wheatlay
 // @github          https://github.com/Wheatlay
 // @license         GPL-3.0
@@ -880,7 +880,7 @@ std::wstring AppName(const std::wstring& aumid) {
             name = value;
         }
     }
-    return name;
+    return std::wstring(NotificationIdentity::DisplayName(aumid, name));
 }
 
 DWORD UserDword(const std::wstring& key, const wchar_t* name, DWORD missing) {
@@ -1812,6 +1812,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
                                 until = old->until;
                             } else {
                                 info.image = !image.empty() ? image : FindAvatar(info.title, info.text, &info);
+                                if (!info.aumid.empty()) {
+                                    auto sourceName = AppName(info.aumid);
+                                    if (!sourceName.empty()) info.app = sourceName;
+                                }
                                 if (info.image.empty()) {
                                     info.image = AppIcon(info.app);
                                 }

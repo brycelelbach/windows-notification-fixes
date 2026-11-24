@@ -12,4 +12,10 @@ inline bool CanReuse(std::wstring_view previousApp, std::wstring_view previousTi
 inline std::wstring_view Sender(std::wstring_view currentSender, std::wstring_view storedSender = {}) {
     return storedSender.empty() ? currentSender : storedSender;
 }
+inline std::wstring_view DisplayName(std::wstring_view aumid, std::wstring_view resolvedName) {
+    // Phone Link's per-device Messages IDs aren't resolved by AppsFolder.
+    // Use the exact package family, never a previous control's cached sender.
+    if (aumid.starts_with(L"Microsoft.YourPhone_8wekyb3d8bbwe!")) return L"Phone Link";
+    return resolvedName;
+}
 }

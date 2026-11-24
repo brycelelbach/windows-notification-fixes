@@ -2,7 +2,7 @@
 
 Compact Windows desktop notifications that appear together, keep their own 60-second display time, and can make Outlook calendar reminders audible while Outlook is closed.
 
-This is a GPL-3.0 fork of [Wheatlay's Compact Notifications 1.2](https://github.com/ramensoftware/windhawk-mods/blob/06bb6df5b1aebfa91ab73c3e16ec5c616d71d794/mods/compact-notifications.wh.cpp), running inside [Windhawk](https://windhawk.net/). Package version **0.1.0** contains mod version **1.2.3**. The package and upstream-derived mod have separate version numbers.
+This is a GPL-3.0 fork of [Wheatlay's Compact Notifications 1.2](https://github.com/ramensoftware/windhawk-mods/blob/06bb6df5b1aebfa91ab73c3e16ec5c616d71d794/mods/compact-notifications.wh.cpp), running inside [Windhawk](https://windhawk.net/). Package version **0.1.0** contains mod version **1.2.4**. The package and upstream-derived mod have separate version numbers.
 
 ## What it changes
 
@@ -10,6 +10,7 @@ This is a GPL-3.0 fork of [Wheatlay's Compact Notifications 1.2](https://github.
 - Accepts the legacy Windows `QUNS_BUSY` state when actual Do Not Disturb and the existing per-app checks allow notifications.
 - Optionally supplies a calendar ding for silent Outlook event reminders only while Outlook is closed. Running Outlook supplies its own configured reminder sound.
 - Reads the sender again when Windows reuses a notification control, preventing a phone message from inheriting an earlier Outlook label.
+- Resolves Phone Link's per-device Messages identifiers to **Phone Link**, even when Windows' AppsFolder lookup returns no name.
 - Includes a yellow/dark-text profile, app names, and a 60-second Windows display duration. Colors apply across apps; they do not identify the sender.
 
 It displays notifications already submitted to Windows. It cannot repair upstream calendar synchronization or make Outlook honor several Google Calendar reminder times on one event.
