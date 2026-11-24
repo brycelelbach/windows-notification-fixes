@@ -36,6 +36,12 @@ On November 24, a four-toast local burst initially displayed correctly, newest f
 
 The worker forgot expired cards after two minutes, while Windows' native banner queue could take longer to reach them. A late native banner was consequently treated as new. The correction retains suppression while the stored notification exists, does not consume that suppression on a first match, and limits native fallback cards to the remaining time from their original arrival.
 
+The corrected build was installed and reloaded into Explorer and ShellExperienceHost. In the traced repeat, four local Slack-channel toasts appeared together over another foreground app, 0.04–0.33 seconds after Windows receipt. Clicking the newest card and then the next card dismissed exactly those two cards; trace arrival IDs and visible remaining cards agreed. The two untouched cards expired 62.6–62.7 seconds after arrival, including animation allowance, with Windows MessageDuration still 60.
+
+The native queue then presented the two dismissed notifications approximately 123 and 183 seconds after their original arrival. Both produced `suppress-expired` records and neither produced a second `card-create`. The latter delay exceeded the previous two-minute suppression interval after dismissal, directly exercising the reproduced failure path. No Slack message was sent by these local toast tests.
+
+The corrected build passed all 37 checks in GitHub's Windows CI. Downloaded CI source and DLL SHA-256 hashes matched the locally installed files. Same-version upgrades preserve prior DLLs using content-derived storage filenames; source, manifest, installer, and release all report 0.1.0. Installation and restore dry-runs passed. This session tested renderer reloads, not a Windows reboot or physical sleep/wake cycle.
+
 ## Optional local renderer trace
 
 For a focused diagnostic session, create an empty `%LOCALAPPDATA%\WindowsNotificationFixes\trace-enabled` file. The parent directory must exist. Events then append to `renderer-trace.jsonl` in the same directory. The marker expires after 30 minutes; deleting it stops logging immediately. The log stops growing at 16 MiB. Remove or archive the old log before another session if necessary.
