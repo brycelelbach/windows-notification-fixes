@@ -22,6 +22,14 @@ The first local desktop test showed Outlook labeled correctly, but a Phone Link 
 
 Mod 1.2.5 stores the raw UIA sender separately from the canonical display name. This preserves stable cache identity when Windows calls the source Messages and the card calls it Phone Link; it also avoids recreating an unchanged card when the raw sender is unavailable.
 
+## Final 1.2.5 desktop check
+
+On November 24, 2026, the packaged installer upgraded the active mod to 1.2.5, confirmed it loaded into both Explorer and ShellExperienceHost, preserved the 60-second duration, and moved the ding file to the stable ProgramData directory. At approximately 15:29 Eastern, disposable local Windows toasts were posted under the installed Outlook and Phone Link notification channels; no email or text message was sent.
+
+The actual desktop cards visibly read **Outlook · Local label check A** and then **Phone Link · Local label check B**, over a different foreground app. The Outlook test was withdrawn before the Phone Link test. Both tagged test alerts were then removed. This confirms the displayed labels in this controlled sequence; the historical reused-control report is additionally covered by the regression test, not a captured historical screenshot.
+
+GitHub's Windows build passed all 24 checks. Its self-contained source and DLL SHA-256 values matched the local installed build byte for byte. Installer upgrade and restore dry-run passed; a separate clean-machine installation, OS reboot, and physical sleep/wake were not performed during this packaging session.
+
 ## Manual acceptance procedure
 
 1. Record the Windows build, Windhawk version, mod version, active apps, and display configuration.
