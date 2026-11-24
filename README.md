@@ -2,7 +2,7 @@
 
 Compact Windows desktop notifications that appear together, keep their own 60-second display time, and can make Outlook calendar reminders audible while Outlook is closed.
 
-This is a GPL-3.0 fork of [Wheatlay's Compact Notifications 1.2](https://github.com/ramensoftware/windhawk-mods/blob/06bb6df5b1aebfa91ab73c3e16ec5c616d71d794/mods/compact-notifications.wh.cpp), running inside [Windhawk](https://windhawk.net/). Package version **0.1.0** contains mod version **1.2.4**. The package and upstream-derived mod have separate version numbers.
+This is a GPL-3.0 fork of [Wheatlay's Compact Notifications 1.2](https://github.com/ramensoftware/windhawk-mods/blob/06bb6df5b1aebfa91ab73c3e16ec5c616d71d794/mods/compact-notifications.wh.cpp), running inside [Windhawk](https://windhawk.net/). Package version **0.1.0** contains mod version **1.2.5**. The package and upstream-derived mod have separate version numbers.
 
 ## What it changes
 

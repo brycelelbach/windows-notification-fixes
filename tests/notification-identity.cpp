@@ -22,5 +22,9 @@ int main() {
     assert(DisplayName(L"Microsoft.YourPhone_8wekyb3d8bbwe!App", L"Messages") == L"Phone Link");
     assert(DisplayName(L"Microsoft.YourPhone_8wekyb3d8bbwe-Other!App", L"Another app") == L"Another app");
     assert(DisplayName(L"Other!App", L"").empty());
-    std::cout << "13 notification identity regression checks passed\n";
+    // Raw UIA names are the cache key, so canonicalizing Messages to Phone Link
+    // does not repeatedly reconstruct the same native notification.
+    assert(CanReuse(L"Messages", L"Hello", L"Body", L"Messages", L"Hello", L"Body"));
+    assert(CanReuse(L"", L"Hello", L"Body", L"", L"Hello", L"Body"));
+    std::cout << "15 notification identity regression checks passed\n";
 }

@@ -2,7 +2,7 @@
 // @id              compact-notifications-background
 // @name            Compact Notifications (background fix)
 // @description     Replaces Windows notification banners with compact chat-style cards: avatar, sender and a few lines of text
-// @version         1.2.4
+// @version         1.2.5
 // @author          Wheatlay
 // @github          https://github.com/Wheatlay
 // @license         GPL-3.0
@@ -1469,6 +1469,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
             IUIAutomationElement* element;
             bool hidden = false;  // its stored card already came and went: the banner shows it late, no second card
             ULONGLONG until = 0;  // a stored toast's card time, kept when the banner takes it over (0: banner's time)
+            std::wstring sender;  // raw UIA sender; distinct from the canonical displayed app name
         };
         std::vector<Known> known;
         std::vector<ToastInfo> lastSent;
@@ -1760,7 +1761,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
                         bool hidden = false;
                         ULONGLONG until = 0;
                         if (same != known.end() && NotificationIdentity::CanReuse(
-                                same->info.app, same->info.title, same->info.text, sender, title, text)) {
+                                same->sender, same->info.title, same->info.text, sender, title, text)) {
                             info = same->info;
                             hidden = same->hidden;
                             until = same->until;
@@ -1848,7 +1849,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
                         if (until && GetTickCount64() > until && GetTickCount64() >= g_holdUntil && !info.priority) {
                             hidden = true;
                         }
-                        current.push_back({info, runtimeId, element, hidden, until});
+                        current.push_back({info, runtimeId, element, hidden, until, sender});
                     }
                 }
             }
