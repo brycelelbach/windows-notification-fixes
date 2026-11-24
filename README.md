@@ -2,11 +2,14 @@
 
 Compact Windows desktop notifications that appear together, keep their own 60-second display time, and can make Outlook calendar reminders audible while Outlook is closed.
 
-This is a GPL-3.0 fork of [Wheatlay's Compact Notifications 1.2](https://github.com/ramensoftware/windhawk-mods/blob/06bb6df5b1aebfa91ab73c3e16ec5c616d71d794/mods/compact-notifications.wh.cpp), running inside [Windhawk](https://windhawk.net/). Package version **0.1.0** contains mod version **1.2.5**. The package and upstream-derived mod have separate version numbers.
+This is a GPL-3.0 fork of [Wheatlay's Compact Notifications 1.2](https://github.com/ramensoftware/windhawk-mods/blob/06bb6df5b1aebfa91ab73c3e16ec5c616d71d794/mods/compact-notifications.wh.cpp), running inside [Windhawk](https://windhawk.net/). **Version 0.1.0** applies to the mod, installer, and release package.
+
+One version is kept throughout a round of related work. Individual changes and test builds do not receive new version numbers; later releases do. Git commits and file hashes identify intermediate builds.
 
 ## What it changes
 
 - Displays new cards alongside older cards, newest first; an older banner no longer holds up the next one.
+- Keeps expired cards from reappearing when Windows later advances its native banner queue. A delayed native banner keeps the original arrival's display deadline.
 - Accepts the legacy Windows `QUNS_BUSY` state when actual Do Not Disturb and the existing per-app checks allow notifications.
 - Optionally supplies a calendar ding for silent Outlook event reminders only while Outlook is closed. Running Outlook supplies its own configured reminder sound.
 - Reads the sender again when Windows reuses a notification control, preventing a phone message from inheriting an earlier Outlook label.
@@ -77,7 +80,7 @@ Install Windhawk 1.7.3 and Node.js 22. Then run from a checkout:
 node .\scripts\build.cjs
 ```
 
-`WINDHAWK_ROOT` can point to a non-default standard Windhawk installation. The script uses Windhawk's bundled clang/compiler headers and versioned engine import library, runs both regression suites, compiles the self-contained mod, and writes `dist/manifest.json` with SHA-256 hashes. The build does not change your installed mod.
+`WINDHAWK_ROOT` can point to a non-default standard Windhawk installation. The script uses Windhawk's bundled clang/compiler headers and versioned engine import library, runs all three regression suites, compiles the self-contained mod, and writes `dist/manifest.json` with SHA-256 hashes. The build does not change your installed mod.
 
 `scripts/package.ps1` creates the release ZIP and its checksum. CI builds and tests on Windows using the pinned official installer. Source correspondence and repeatable builds are provided; bit-for-bit reproducibility across different compiler bundles is not claimed.
 
@@ -96,7 +99,7 @@ For a fresh install this removes the local mod registration; for an upgrade it r
 
 ## Verification and limits
 
-See [verification](docs/verification.md) for the test procedure and exact tested states. Earlier real work/personal reminders were seen and heard with Outlook closed and in the background. The label correction has automated regression coverage; its live desktop status is recorded separately. Do not interpret an app restart as a Windows reboot or sleep/wake test.
+See [verification](docs/verification.md) for the test procedure, optional metadata-only local tracing, and exact tested states. Earlier real work/personal reminders were seen and heard with Outlook closed and in the background. Label and delayed-replay corrections have automated regression coverage; live desktop results are recorded separately. Do not interpret an app restart as a Windows reboot or sleep/wake test.
 
 Cards can last slightly longer than 60 seconds because of animation; hovering pauses expiration. Priority reminders/alarms/calls can persist until handled. At most ten normal cards are shown; older cards remain in Notification Center. The mod reads Windows' local notification database and uses Windows accessibility controls for notification actions. This repository contains no calendar data, account settings, private notification logs, or screenshots.
 

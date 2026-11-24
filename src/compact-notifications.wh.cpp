@@ -2,7 +2,7 @@
 // @id              compact-notifications-background
 // @name            Compact Notifications (background fix)
 // @description     Replaces Windows notification banners with compact chat-style cards: avatar, sender and a few lines of text
-// @version         1.2.5
+// @version         0.1.0
 // @author          Wheatlay
 // @github          https://github.com/Wheatlay
 // @license         GPL-3.0
@@ -253,6 +253,8 @@ banners back.
 #include <vector>
 #include "outlook-reminder-sound.h"
 #include "notification-identity.h"
+#include "notification-lifetime.h"
+#include "notification-trace.h"
 
 #ifndef Log
 #define Log(format, ...) Wh_Log(format, ##__VA_ARGS__)
@@ -766,9 +768,10 @@ std::wstring FindAvatar(const std::wstring& title, const std::wstring& text, Toa
     std::wstring start = text.substr(0, std::min(text.find_first_of(L"\r\n"), (size_t)24));
     std::string wantTitle = ToUtf8(title), wantText = ToUtf8(start);
     std::string payload, aumid;
+    long long arrival = 0;
     if (sqlite3_stmt* stmt =
-            Prepare("SELECT n.Payload, h.PrimaryId FROM Notification n JOIN NotificationHandler h "
-                    "ON h.RecordId = n.HandlerId WHERE n.Type = 'toast' ORDER BY n.ArrivalTime DESC LIMIT 30")) {
+            Prepare("SELECT n.Payload, h.PrimaryId, n.ArrivalTime FROM Notification n JOIN NotificationHandler h "
+                    "ON h.RecordId = n.HandlerId WHERE n.Type = 'toast' ORDER BY n.ArrivalTime DESC")) {
         while (g_sqlite.step(stmt) == SQLITE_ROW) {
             auto data = (const char*)g_sqlite.column_blob(stmt, 0);
             int size = g_sqlite.column_bytes(stmt, 0);
@@ -779,6 +782,9 @@ std::wstring FindAvatar(const std::wstring& title, const std::wstring& text, Toa
             std::string plain = XmlUnescape(candidate);
             if (plain.find(wantTitle) != std::string::npos && plain.find(wantText) != std::string::npos) {
                 payload = candidate;
+                if (auto value = (const char*)g_sqlite.column_blob(stmt, 2)) {
+                    arrival = atoll(std::string(value, g_sqlite.column_bytes(stmt, 2)).c_str());
+                }
                 if (auto id = (const char*)g_sqlite.column_blob(stmt, 1)) {
                     aumid.assign(id, g_sqlite.column_bytes(stmt, 1));
                 }
@@ -792,6 +798,7 @@ std::wstring FindAvatar(const std::wstring& title, const std::wstring& text, Toa
     }
     if (audio) {
         ReadAudio(payload, FromUtf8(aumid), *audio);
+        audio->arrival = arrival;
     }
     return AvatarFromPayload(payload, FromUtf8(aumid));
 }
@@ -1662,6 +1669,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 const std::wstring& id = command.info.id;
                 auto onBanner = std::find_if(known.begin(), known.end(), [&](const Known& k) { return k.info.id == id; });
                 if (onBanner != known.end()) {
+                    NotificationTrace("banner-command", command.info.arrival, static_cast<int>(command.action), onBanner->info.arrival);
                     onBanner->until = 0;  // handled: its card goes with the banner
                     if (command.action == Action::Button) {
                         pressButton(onBanner->element, command);
@@ -1684,6 +1692,7 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 auto waiting = std::find_if(pending.begin(), pending.end(),
                                             [&](const Pending& p) { return p.info.id == id; });
                 if (waiting != pending.end()) {
+                    NotificationTrace("pending-command", waiting->info.arrival, static_cast<int>(command.action));
                     expired.push_back({waiting->info, GetTickCount64()});
                     pending.erase(waiting);
                 }
@@ -1714,6 +1723,9 @@ DWORD WINAPI WorkerThread(LPVOID) {
                     arrivals.push_back(p.info.arrival);
                 }
             }
+            for (auto& e : expired) {
+                if (e.first.arrival) arrivals.push_back(e.first.arrival);
+            }
             std::vector<long long> taken = StoredToastsGone(arrivals);
             for (auto it = pending.begin(); it != pending.end();) {
                 // The app took its toast back (a call answered or declined in the app, a message read): no card.
@@ -1730,7 +1742,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
                 expired.push_back({it->info, now});
                 it = pending.erase(it);
             }
-            std::erase_if(expired, [&](const auto& e) { return now - e.second > 2 * 60 * 1000; });
+            std::erase_if(expired, [&](const auto& e) {
+                const bool removed = std::find(taken.begin(), taken.end(), e.first.arrival) != taken.end();
+                return !NotificationLifetime::KeepExpired(e.first.arrival, removed, now-e.second);
+            });
 
             std::vector<Known> current;
             HWND banner = FindVisibleBanner();
@@ -1800,10 +1815,10 @@ DWORD WINAPI WorkerThread(LPVOID) {
                                 until = waiting->until;
                                 pending.erase(waiting);
                             } else if (gone != expired.end()) {
+                                NotificationTrace("suppress-expired", gone->first.arrival);
                                 info.id = gone->first.id;
                                 info.arrival = gone->first.arrival;
                                 hidden = true;
-                                expired.erase(gone);
                             }
                             auto old = std::find_if(known.begin(), known.end(),
                                                     [&](const Known& k) { return k.info.id == info.id; });
@@ -1846,6 +1861,17 @@ DWORD WINAPI WorkerThread(LPVOID) {
                         }
                         // Its card ends on time unless it waits to be handled (the card keeps itself while the user
                         // types in it).
+                        if (!until && info.arrival && !info.priority) {
+                            FILETIME wallTime;
+                            GetSystemTimeAsFileTime(&wallTime);
+                            const auto wallTicks = (static_cast<std::uint64_t>(wallTime.dwHighDateTime) << 32) | wallTime.dwLowDateTime;
+                            const auto remaining = NotificationLifetime::RemainingMilliseconds(info.arrival, wallTicks, cardMs());
+                            if (!remaining) {
+                                if (!hidden) NotificationTrace("suppress-aged", info.arrival);
+                                hidden = true;
+                            }
+                            else until = GetTickCount64() + remaining;
+                        }
                         if (until && GetTickCount64() > until && GetTickCount64() >= g_holdUntil && !info.priority) {
                             hidden = true;
                         }
@@ -2664,6 +2690,7 @@ void ApplySnapshot() {
         }
         Card card;
         card.info = info;
+        NotificationTrace("card-create", info.arrival);
         if (!g_settings.showActions || !rule.buttons) {
             card.info.buttons.clear();
         }
@@ -2942,6 +2969,7 @@ bool Render() {
                                  [&](Card& c) {
                                      bool done = c.goneAt && now - c.goneAt >= OutMs();
                                      if (done) {
+                                         NotificationTrace("card-remove", c.info.arrival);
                                          ReleaseCard(c);
                                      }
                                      return done;
@@ -3287,6 +3315,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             return 0;
         case WM_LBUTTONUP: {
             Hit hit = HitTest(POINT{(short)LOWORD(lParam), (short)HIWORD(lParam)});
+            NotificationTrace("click-point", hit.card>=0 ? g_cards[hit.card].info.arrival : 0,
+                (short)LOWORD(lParam), (short)HIWORD(lParam));
             if (hit.card < 0) {
                 return 0;
             }
@@ -3299,6 +3329,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     }
                     [[fallthrough]];
                 case Part::Close:
+                    NotificationTrace("card-action", card.info.arrival, static_cast<int>(hit.part), hit.card);
                     SendCommand(card, hit.part == Part::Body ? Action::Open : Action::Dismiss);
                     card.info.inputFocused = false;
                     card.goneAt = NowMs();
