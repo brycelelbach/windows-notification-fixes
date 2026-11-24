@@ -1,0 +1,10 @@
+/build/
+/dist/
+/artifacts/
+*.exe
+*.dll
+*.wav
+*.zip
+*.log
+*.reg
+*.clixml

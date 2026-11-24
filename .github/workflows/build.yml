@@ -1,0 +1,42 @@
+name: Windows build and regression checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Windhawk toolchain
+        shell: pwsh
+        run: |
+          $installer = Join-Path $env:RUNNER_TEMP 'windhawk_setup_offline.exe'
+          Invoke-WebRequest 'https://github.com/ramensoftware/windhawk/releases/download/v1.7.3/windhawk_setup_offline.exe' -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne '4D93016570F982326EEBDFC9068E924FF21F6448534EA32672BB4C1D52A8193B') { throw 'Installer checksum mismatch' }
+          $proc = Start-Process -FilePath $installer -ArgumentList '/S' -WindowStyle Hidden -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Installer exit $($proc.ExitCode)" }
+      - name: Build and test
+        run: node scripts/build.cjs
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          Get-ChildItem scripts/*.ps1 | ForEach-Object {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors)
+            if ($errors) { throw ($errors | Out-String) }
+          }
+      - name: Package
+        shell: pwsh
+        run: ./scripts/package.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-notification-fixes
+          path: |
+            artifacts/*.zip
+            artifacts/SHA256SUMS.txt

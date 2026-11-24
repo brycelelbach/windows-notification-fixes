@@ -1,0 +1,21 @@
+Windows notification fixes
+https://github.com/brycelelbach/windows-notification-fixes
+
+Derived from Compact Notifications 1.2 by Wheatlay, licensed GPL-3.0.
+Upstream source:
+https://github.com/ramensoftware/windhawk-mods/blob/06bb6df5b1aebfa91ab73c3e16ec5c616d71d794/mods/compact-notifications.wh.cpp
+Upstream source SHA-256:
+8f0c524b0cdcd314957460b69ee34844caab61b1f94161f14043a5d5f0adb5ad
+
+The upstream source credits the notification detection idea to Toast auto-dismiss
+by nikitor32 and banner-window detection to Notifications placement by m417z,
+both GPL-3.0. Their attribution remains in the source.
+
+Local modifications, November 2026:
+- Accept legacy QUNS_BUSY only when actual DND and existing banner policy allow it.
+- Optional audio fallback for silent Outlook calendar reminders while Outlook is closed.
+- Refresh sender identity when Windows reuses UIA notification controls.
+- Portable packaging, installation/restore scripts, tests, and documentation.
+
+Windhawk and Windows are separate dependencies. This package does not distribute
+Windhawk, Microsoft audio assets, personal notification data, or account settings.
